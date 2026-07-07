@@ -50,6 +50,7 @@
 </script>
 <style>
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .chem-chip { display: inline-flex; align-items: center; }
   .chem-chip.special { border-color: #ba1a1a; background: #fff1f0; color: #93000a; }
   .door-tab.active { background: #2563eb; color: #fff; }
   .shelf-panel.active { display: block; }
@@ -85,6 +86,11 @@
     </div>
   </header>
 
+  <div class="flex items-center justify-between mb-stack-md">
+    <div id="authStatus" class="text-sm text-on-surface-variant"></div>
+    <button id="authBtn" class="px-3 py-1.5 rounded-lg border border-outline-variant text-sm bg-surface hover:bg-surface-container-low transition">🔒 교사 인증</button>
+  </div>
+
   <div class="flex flex-col md:flex-row gap-stack-lg">
 
     <!-- 왼쪽: 문 선택 -->
@@ -103,29 +109,54 @@
 <script>
   const doorTabsEl = document.getElementById('doorTabs');
   const doorPanelsEl = document.getElementById('doorPanels');
+  const authBtn = document.getElementById('authBtn');
+  const authStatusEl = document.getElementById('authStatus');
+  let currentDoorId = REAGENT_DOORS[0].id;
 
   function chipHtml(item) {
     const specialCls = item.special ? 'special' : '';
     const warn = item.special ? ' ⚠' : '';
-    return `<button class="chem-chip ${specialCls} px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-sm hover:border-primary-container hover:text-primary-container transition"
-              onclick="openMsds('${item.name.replace(/'/g, "\\'")}')">${item.name}${warn}</button>`;
+    const safeName = item.name.replace(/'/g, "\\'");
+    let manage = '';
+    if (teacherAuth.authenticated) {
+      manage = `
+        <button title="사용 기록 남기기" onclick="event.stopPropagation(); handleUse('${safeName}')"
+          class="ml-1 text-on-surface-variant hover:text-primary-container">
+          <span class="material-symbols-outlined text-[15px] align-middle">edit_note</span>
+        </button>
+        <button title="재고에서 제거" onclick="event.stopPropagation(); handleRemove('${safeName}')"
+          class="text-on-surface-variant hover:text-error">
+          <span class="material-symbols-outlined text-[15px] align-middle">close</span>
+        </button>`;
+    }
+    return `<span class="chem-chip ${specialCls} px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-sm">
+        <button class="hover:text-primary-container transition" onclick="openMsds('${safeName}')">${item.name}${warn}</button>
+        ${manage}
+      </span>`;
   }
 
   function shelfSection(door, shelfKey, meta) {
-    const items = CHEMICALS.filter(c => c.door === door.id && c.shelf === shelfKey);
+    const items = INVENTORY.filter(c => c.door === door.id && c.shelf === shelfKey);
+    const addBtn = teacherAuth.authenticated ? `
+      <button onclick="handleAdd(${door.id}, '${shelfKey}')"
+        class="px-3 py-1.5 rounded-full border border-dashed border-primary-container text-primary-container text-sm hover:bg-surface-container-high transition">
+        + 새 시약 추가
+      </button>` : '';
     return `
       <section class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
         <div class="p-stack-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
           <h3 class="font-bold text-on-surface">${meta.title}</h3>
           ${meta.note ? `<span class="text-xs text-on-surface-variant">${meta.note}</span>` : ''}
         </div>
-        <div class="p-stack-md flex flex-wrap gap-2">
+        <div class="p-stack-md flex flex-wrap gap-2 items-center">
           ${items.map(chipHtml).join('') || '<span class="text-on-surface-variant text-sm">등록된 물질 없음</span>'}
+          ${addBtn}
         </div>
       </section>`;
   }
 
   function renderDoor(doorId) {
+    currentDoorId = doorId;
     const door = REAGENT_DOORS.find(d => d.id === doorId);
     doorPanelsEl.innerHTML = `
       <h2 class="text-headline-md font-bold flex items-center gap-2">
@@ -139,7 +170,7 @@
 
   function renderTabs() {
     doorTabsEl.innerHTML = REAGENT_DOORS.map(d => `
-      <button data-door="${d.id}" class="door-tab px-4 py-2 rounded-lg border border-outline-variant text-left font-medium hover:bg-surface-container-low transition">
+      <button data-door="${d.id}" class="door-tab ${d.id === currentDoorId ? 'active' : ''} px-4 py-2 rounded-lg border border-outline-variant text-left font-medium hover:bg-surface-container-low transition">
         ${d.label}
       </button>`).join('');
     doorTabsEl.querySelectorAll('.door-tab').forEach(btn => {
@@ -151,9 +182,60 @@
     });
   }
 
-  renderTabs();
-  doorTabsEl.querySelector('.door-tab').classList.add('active');
-  renderDoor(REAGENT_DOORS[0].id);
+  function updateAuthUI() {
+    authStatusEl.textContent = teacherAuth.authenticated
+      ? `✅ ${teacherAuth.teacher} 님 인증됨 (추가·제거·사용기록 가능)`
+      : (isBackendConfigured() ? '' : '⚠️ 재고 관리 서버가 아직 연결되지 않았습니다 (조회만 가능)');
+    authBtn.textContent = teacherAuth.authenticated ? '로그아웃' : '🔒 교사 인증';
+  }
+
+  authBtn.addEventListener('click', () => {
+    if (teacherAuth.authenticated) {
+      teacherLogout();
+      updateAuthUI();
+      renderTabs();
+      renderDoor(currentDoorId);
+      return;
+    }
+    const name = prompt('이름을 입력하세요 (기록에 남습니다):', '');
+    if (name === null || name.trim() === '') return;
+    const pw = prompt('교사 비밀번호를 입력하세요:');
+    if (pw === null) return;
+    teacherLogin(pw, name.trim());
+    updateAuthUI();
+    renderTabs();
+    renderDoor(currentDoorId);
+  });
+
+  async function handleAdd(door, shelf) {
+    const name = prompt('추가할 시약명을 정확히 입력하세요:');
+    if (!name) return;
+    const group = prompt('분류(예: 무기산, 유기일반 등 — 생략 가능):', '') || '';
+    const special = confirm('극약·특별관리 물질입니까?\n(예: 확인 누르기 / 아니오: 취소 누르기)');
+    const note = prompt('메모(구입일, 구매처 등 — 생략 가능):', '') || '';
+    const result = await addChemical({ name: name.trim(), door, shelf, group, special, note });
+    if (result.ok) { renderDoor(currentDoorId); alert(`"${name}" 등록 완료`); }
+  }
+
+  async function handleRemove(name) {
+    if (!confirm(`"${name}"을(를) 재고에서 제거 처리할까요?\n(기록은 삭제되지 않고 이력으로 계속 남습니다)`)) return;
+    const note = prompt('제거 사유(전출/폐기/소진 등 — 생략 가능):', '') || '';
+    const result = await removeChemical(name, note);
+    if (result.ok) { renderDoor(currentDoorId); alert(`"${name}" 제거 처리 완료`); }
+  }
+
+  async function handleUse(name) {
+    const note = prompt(`"${name}" 사용 기록을 남깁니다. 용도/수량 등을 적어주세요:`, '') || '';
+    const result = await useChemical(name, note);
+    if (result.ok) alert('사용 기록이 저장되었습니다.');
+  }
+
+  (async function init() {
+    updateAuthUI();
+    await loadInventory();
+    renderTabs();
+    renderDoor(REAGENT_DOORS[0].id);
+  })();
 </script>
 </body>
 </html>
