@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>밀폐시약장 안내 | 서산명지중 과학실 안전 대시보드</title>
+<meta name="description" content="서산명지중학교 과학실 밀폐시약장 8칸 배치와 칸별 화학물질, MSDS 연동 안내" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary-container": "#2563eb",
+          "on-primary": "#ffffff",
+          "error": "#ba1a1a",
+          "on-error": "#ffffff",
+          "on-error-container": "#93000a",
+          "tertiary": "#006329",
+          "tertiary-fixed-dim": "#62df7d",
+          "secondary-container": "#e02928",
+          "surface": "#f9f9ff",
+          "background": "#f9f9ff",
+          "surface-bright": "#f9f9ff",
+          "surface-container-low": "#f0f3ff",
+          "surface-container-lowest": "#ffffff",
+          "surface-container-high": "#dee8ff",
+          "on-surface": "#111c2d",
+          "on-surface-variant": "#44474e",
+          "outline": "#737686",
+          "outline-variant": "#c4c6d0",
+          "inverse-on-surface": "#ecf1ff"
+        },
+        borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+        spacing: { gutter: "16px", "stack-lg": "32px", "stack-md": "12px", "stack-sm": "4px", "container-padding": "24px", base: "8px" },
+        fontFamily: {
+          "headline-lg": ["Hanken Grotesk"], "headline-md": ["Hanken Grotesk"],
+          "body-md": ["Hanken Grotesk"], "body-lg": ["Hanken Grotesk"]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .chem-chip.special { border-color: #ba1a1a; background: #fff1f0; color: #93000a; }
+  .door-tab.active { background: #2563eb; color: #fff; }
+  .shelf-panel.active { display: block; }
+  .shelf-panel { display: none; }
+</style>
+</head>
+<body class="bg-background text-on-surface font-body-md text-body-md min-h-screen">
+
+<div class="max-w-6xl mx-auto p-container-padding">
+
+  <a href="index.html" class="inline-flex items-center gap-1 text-primary-container text-sm mb-stack-md hover:underline">
+    <span class="material-symbols-outlined text-[18px]">arrow_back</span> 대시보드로 돌아가기
+  </a>
+
+  <header class="bg-surface rounded-xl border border-outline-variant shadow-sm p-container-padding mb-stack-lg flex flex-col md:flex-row gap-stack-lg items-start">
+    <img src="assets/reagent-cabinet.png" alt="과학실 밀폐시약장 (문 4개, 각 상/하 2단)"
+         class="w-full md:w-64 rounded-lg border border-outline-variant object-cover shrink-0" />
+    <div>
+      <h1 class="text-headline-md font-headline-md font-bold text-on-surface flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary-container">inventory_2</span>
+        밀폐시약장 안내
+      </h1>
+      <p class="text-on-surface-variant mt-2 leading-relaxed">
+        문 4개 × 상/하 2단 = 총 8칸으로 구성되어 있습니다. 왼쪽에서 문(칸)을 선택하면
+        해당 문의 상단/하단에 보관 중인 화학물질이 표시됩니다. 물질명을 클릭하면 이름이
+        자동 복사되고 안전보건공단(KOSHA) MSDS 검색 페이지가 새 탭으로 열립니다 —
+        열린 페이지 검색창에 <b>Ctrl+V</b>로 붙여넣으면 바로 조회할 수 있어요.
+      </p>
+      <p class="mt-3 text-sm inline-flex items-center gap-1 px-3 py-1 rounded-full bg-error/10 text-on-error-container border border-error/30 w-fit">
+        <span class="material-symbols-outlined text-[16px]">warning</span>
+        붉은 테두리 항목(⚠)은 학교 운영계획서 기준 <b>극약</b> 물질로 이중 잠금 보관이 필요합니다.
+      </p>
+    </div>
+  </header>
+
+  <div class="flex flex-col md:flex-row gap-stack-lg">
+
+    <!-- 왼쪽: 문 선택 -->
+    <nav class="md:w-56 shrink-0 bg-surface rounded-xl border border-outline-variant shadow-sm p-stack-md h-fit">
+      <h2 class="text-sm font-bold text-on-surface-variant mb-stack-sm px-2">문 선택</h2>
+      <div id="doorTabs" class="flex md:flex-col gap-2"></div>
+    </nav>
+
+    <!-- 오른쪽: 선택한 문의 상/하단 내용 -->
+    <main class="flex-1 space-y-stack-lg" id="doorPanels"></main>
+
+  </div>
+</div>
+
+<script src="assets/reagent-data.js"></script>
+<script>
+  const doorTabsEl = document.getElementById('doorTabs');
+  const doorPanelsEl = document.getElementById('doorPanels');
+
+  function chipHtml(item) {
+    const specialCls = item.special ? 'special' : '';
+    const warn = item.special ? ' ⚠' : '';
+    return `<button class="chem-chip ${specialCls} px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-sm hover:border-primary-container hover:text-primary-container transition"
+              onclick="openMsds('${item.name.replace(/'/g, "\\'")}')">${item.name}${warn}</button>`;
+  }
+
+  function shelfSection(door, shelfKey, meta) {
+    const items = CHEMICALS.filter(c => c.door === door.id && c.shelf === shelfKey);
+    return `
+      <section class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+        <div class="p-stack-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+          <h3 class="font-bold text-on-surface">${meta.title}</h3>
+          ${meta.note ? `<span class="text-xs text-on-surface-variant">${meta.note}</span>` : ''}
+        </div>
+        <div class="p-stack-md flex flex-wrap gap-2">
+          ${items.map(chipHtml).join('') || '<span class="text-on-surface-variant text-sm">등록된 물질 없음</span>'}
+        </div>
+      </section>`;
+  }
+
+  function renderDoor(doorId) {
+    const door = REAGENT_DOORS.find(d => d.id === doorId);
+    doorPanelsEl.innerHTML = `
+      <h2 class="text-headline-md font-bold flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary-container">door_front</span>
+        ${door.label} 보관 현황
+      </h2>
+      ${shelfSection(door, 'top', door.top)}
+      ${shelfSection(door, 'bottom', door.bottom)}
+    `;
+  }
+
+  function renderTabs() {
+    doorTabsEl.innerHTML = REAGENT_DOORS.map(d => `
+      <button data-door="${d.id}" class="door-tab px-4 py-2 rounded-lg border border-outline-variant text-left font-medium hover:bg-surface-container-low transition">
+        ${d.label}
+      </button>`).join('');
+    doorTabsEl.querySelectorAll('.door-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        doorTabsEl.querySelectorAll('.door-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderDoor(Number(btn.dataset.door));
+      });
+    });
+  }
+
+  renderTabs();
+  doorTabsEl.querySelector('.door-tab').classList.add('active');
+  renderDoor(REAGENT_DOORS[0].id);
+</script>
+</body>
+</html>
