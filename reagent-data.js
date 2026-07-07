@@ -123,6 +123,35 @@ const CHEMICALS = [
 const MSDS_LOCAL_DIR = "msds/";
 const MSDS_SEARCH_URL = "https://msds.kosha.or.kr/MSDSInfo/kcic/msdssearchMsds.do";
 
+/**
+ * 시약명만 보고 어느 문/칸에 넣어야 할지 자동으로 추정한다.
+ * 1) 기존/과거에 등록된 적 있는 이름이면 그때 위치 그대로 재사용 (가장 신뢰도 높음)
+ * 2) 처음 보는 이름이면 이름에 포함된 패턴(질산~, 염화~, ~가루, ~용액 등)으로 추정
+ * 3) 그래도 모르면 "미분류"로 반환 — 화면에서 반드시 교사가 최종 확인/수정하도록 함
+ *    (자동판단은 어디까지나 "제안"이고, 위험물 배치를 기계가 확정짓지 않게 하기 위함)
+ */
+function classifyChemical(name) {
+  const known = CHEMICALS.find(c => c.name === name);
+  if (known) {
+    return { door: known.door, shelf: known.shelf, group: known.group, special: known.special, confidence: "exact" };
+  }
+
+  const rules = [
+    { test: n => /^질산/.test(n), door: 3, shelf: "top", group: "질산염", special: false },
+    { test: n => /^염화/.test(n), door: 3, shelf: "bottom", group: "염화물", special: false },
+    { test: n => /탄산/.test(n), door: 4, shelf: "top", group: "산화물/탄산염", special: false },
+    { test: n => /(가루|분말|리본|금속판|구리판)/.test(n), door: 4, shelf: "bottom", group: "금속·생물시료", special: false },
+    { test: n => /(용액|카민|블루|오렌지|프탈레인|인디고|BTB)/i.test(n), door: 1, shelf: "bottom", group: "지시약·유기시약", special: false },
+    { test: n => /(알코올|에탄올|아세톤|벤젠|나프탈렌)/.test(n), door: 1, shelf: "top", group: "인화성·휘발성", special: false },
+    { test: n => /(요오드|아이오딘|청산|시안|비소|수은)/.test(n), door: 2, shelf: "bottom", group: "독극물", special: true },
+    { test: n => /^(염산|황산|붕산)$/.test(n), door: 2, shelf: "top", group: "무기산", special: true }
+  ];
+  for (const r of rules) {
+    if (r.test(name)) return { door: r.door, shelf: r.shelf, group: r.group, special: r.special, confidence: "guess" };
+  }
+  return { door: 1, shelf: "bottom", group: "미분류", special: false, confidence: "unknown" };
+}
+
 async function openMsds(name) {
   const localPath = MSDS_LOCAL_DIR + encodeURIComponent(name) + ".pdf";
   try {
