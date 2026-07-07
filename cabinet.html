@@ -88,7 +88,15 @@
 
   <div class="flex items-center justify-between mb-stack-md">
     <div id="authStatus" class="text-sm text-on-surface-variant"></div>
-    <button id="authBtn" class="px-3 py-1.5 rounded-lg border border-outline-variant text-sm bg-surface hover:bg-surface-container-low transition">🔒 교사 인증</button>
+    <div class="flex items-center gap-2">
+      <button id="manageBtn" class="hidden px-3 py-1.5 rounded-lg bg-primary-container text-on-primary text-sm font-medium hover:opacity-90 transition">🧪 시약 추가/제거</button>
+      <button id="authBtn" class="px-3 py-1.5 rounded-lg border border-outline-variant text-sm bg-surface hover:bg-surface-container-low transition">🔒 교사 인증</button>
+    </div>
+  </div>
+
+  <!-- 추가/제거 모달 -->
+  <div id="manageModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 p-4">
+    <div class="bg-surface rounded-xl shadow-lg max-w-md w-full p-container-padding" id="manageModalBody"></div>
   </div>
 
   <div class="flex flex-col md:flex-row gap-stack-lg">
@@ -187,6 +195,7 @@
       ? `✅ ${teacherAuth.teacher} 님 인증됨 (추가·제거·사용기록 가능)`
       : (isBackendConfigured() ? '' : '⚠️ 재고 관리 서버가 아직 연결되지 않았습니다 (조회만 가능)');
     authBtn.textContent = teacherAuth.authenticated ? '로그아웃' : '🔒 교사 인증';
+    manageBtn.classList.toggle('hidden', !teacherAuth.authenticated);
   }
 
   authBtn.addEventListener('click', () => {
@@ -229,6 +238,128 @@
     const result = await useChemical(name, note);
     if (result.ok) alert('사용 기록이 저장되었습니다.');
   }
+
+  /* ── 시약 추가/제거 모달 ── */
+  const manageBtn = document.getElementById('manageBtn');
+  const manageModal = document.getElementById('manageModal');
+  const manageModalBody = document.getElementById('manageModalBody');
+
+  function openModal() { manageModal.classList.remove('hidden'); manageModal.classList.add('flex'); }
+  function closeModal() { manageModal.classList.add('hidden'); manageModal.classList.remove('flex'); }
+
+  function showChoiceStep() {
+    manageModalBody.innerHTML = `
+      <h3 class="text-lg font-bold mb-stack-md text-on-surface">시약 추가 / 제거</h3>
+      <div class="flex gap-stack-md">
+        <button id="btnGoAdd" class="flex-1 py-3 rounded-lg bg-primary-container text-on-primary font-medium hover:opacity-90 transition">+ 추가</button>
+        <button id="btnGoRemove" class="flex-1 py-3 rounded-lg bg-error text-on-error font-medium hover:opacity-90 transition">− 제거</button>
+      </div>
+      <button id="btnCancel0" class="mt-stack-md text-sm text-on-surface-variant hover:underline">닫기</button>
+    `;
+    document.getElementById('btnGoAdd').onclick = showAddStep;
+    document.getElementById('btnGoRemove').onclick = showRemoveStep;
+    document.getElementById('btnCancel0').onclick = closeModal;
+    openModal();
+  }
+
+  function showAddStep() {
+    manageModalBody.innerHTML = `
+      <h3 class="text-lg font-bold mb-stack-md text-on-surface">새 시약 추가</h3>
+      <label class="text-sm text-on-surface-variant">시약명</label>
+      <input id="addNameInput" type="text" class="w-full mt-1 mb-stack-md px-3 py-2 rounded-lg border border-outline-variant" placeholder="예: 염산" />
+      <div class="flex gap-2">
+        <button id="btnClassify" class="flex-1 py-2 rounded-lg bg-primary-container text-on-primary font-medium hover:opacity-90 transition">위치 찾기</button>
+        <button id="btnBack1" class="py-2 px-3 rounded-lg border border-outline-variant">뒤로</button>
+      </div>
+      <div id="classifyResult" class="mt-stack-md"></div>
+    `;
+    document.getElementById('btnBack1').onclick = showChoiceStep;
+    document.getElementById('btnClassify').onclick = () => {
+      const name = document.getElementById('addNameInput').value.trim();
+      if (!name) { alert('시약명을 입력해주세요.'); return; }
+      renderClassifyResult(name, classifyChemical(name));
+    };
+  }
+
+  function renderClassifyResult(name, guess) {
+    const doorMeta = REAGENT_DOORS.find(d => d.id === guess.door);
+    const shelfMeta = guess.shelf === 'top' ? doorMeta.top : doorMeta.bottom;
+    const confidenceLabel = {
+      exact: '✅ 예전에 등록된 적 있는 물질과 이름이 같아요 — 그때와 같은 위치로 제안합니다.',
+      guess: '🔎 이름 패턴으로 추정한 위치입니다. 아래에서 확인/수정해주세요.',
+      unknown: '❓ 자동으로 분류하지 못했습니다. 아래에서 문/칸을 직접 선택해주세요.'
+    }[guess.confidence];
+
+    manageModalBody.innerHTML = `
+      <h3 class="text-lg font-bold mb-stack-md text-on-surface">새 시약 추가</h3>
+      <div class="p-stack-md rounded-lg border border-outline-variant bg-surface-container-low text-sm space-y-2">
+        <p class="text-xs text-on-surface-variant">${confidenceLabel}</p>
+        <p><b>${name}</b> → <b>${doorMeta.label} ${guess.shelf === 'top' ? '상단' : '하단'}</b> (${shelfMeta.title})</p>
+        <label class="block text-xs text-on-surface-variant mt-2">위치가 다르면 직접 선택하세요</label>
+        <div class="flex gap-2">
+          <select id="doorSelect" class="flex-1 px-2 py-1.5 rounded-lg border border-outline-variant text-sm">
+            ${REAGENT_DOORS.map(d => `<option value="${d.id}" ${d.id === guess.door ? 'selected' : ''}>${d.label}</option>`).join('')}
+          </select>
+          <select id="shelfSelect" class="flex-1 px-2 py-1.5 rounded-lg border border-outline-variant text-sm">
+            <option value="top" ${guess.shelf === 'top' ? 'selected' : ''}>상단</option>
+            <option value="bottom" ${guess.shelf === 'bottom' ? 'selected' : ''}>하단</option>
+          </select>
+        </div>
+        <label class="flex items-center gap-1 text-xs mt-2">
+          <input type="checkbox" id="specialCheck" ${guess.special ? 'checked' : ''}/> 극약·특별관리 물질 (이중 잠금 필요)
+        </label>
+        <button id="btnConfirmAdd" class="w-full mt-2 py-2 rounded-lg bg-tertiary text-white font-medium hover:opacity-90 transition">이 위치로 등록</button>
+        <button id="btnBack1b" class="w-full text-sm text-on-surface-variant hover:underline">뒤로</button>
+      </div>
+    `;
+    document.getElementById('btnBack1b').onclick = showAddStep;
+    document.getElementById('btnConfirmAdd').onclick = async () => {
+      const door = Number(document.getElementById('doorSelect').value);
+      const shelf = document.getElementById('shelfSelect').value;
+      const special = document.getElementById('specialCheck').checked;
+      const note = prompt('메모(구입일 등, 생략 가능):', '') || '';
+      const result = await addChemical({ name, door, shelf, group: guess.group, special, note });
+      if (result.ok) {
+        closeModal();
+        renderTabs();
+        renderDoor(door);
+        alert(`"${name}" 등록 완료 (${REAGENT_DOORS.find(d => d.id === door).label})`);
+      }
+    };
+  }
+
+  function showRemoveStep() {
+    const options = INVENTORY
+      .map(c => `<option value="${c.name.replace(/"/g, '&quot;')}">${c.name} (${c.door}번 문 · ${c.shelf === 'top' ? '상단' : '하단'})</option>`)
+      .join('');
+    manageModalBody.innerHTML = `
+      <h3 class="text-lg font-bold mb-stack-md text-on-surface">시약 제거</h3>
+      <label class="text-sm text-on-surface-variant">제거할 시약을 선택하세요</label>
+      <select id="removeSelect" class="w-full mt-1 mb-stack-md px-3 py-2 rounded-lg border border-outline-variant">
+        ${options || '<option disabled>등록된 시약이 없습니다</option>'}
+      </select>
+      <div class="flex gap-2">
+        <button id="btnConfirmRemove" class="flex-1 py-2 rounded-lg bg-error text-on-error font-medium hover:opacity-90 transition">제거</button>
+        <button id="btnBack2" class="py-2 px-3 rounded-lg border border-outline-variant">뒤로</button>
+      </div>
+    `;
+    document.getElementById('btnBack2').onclick = showChoiceStep;
+    document.getElementById('btnConfirmRemove').onclick = async () => {
+      const name = document.getElementById('removeSelect').value;
+      if (!name) return;
+      if (!confirm(`"${name}"을(를) 제거할까요?\n(기록은 삭제되지 않고 이력으로 남습니다)`)) return;
+      const note = prompt('제거 사유(전출/폐기/소진 등 — 생략 가능):', '') || '';
+      const result = await removeChemical(name, note);
+      if (result.ok) {
+        closeModal();
+        renderTabs();
+        renderDoor(currentDoorId);
+        alert(`"${name}" 제거 처리 완료`);
+      }
+    };
+  }
+
+  manageBtn.addEventListener('click', showChoiceStep);
 
   (async function init() {
     updateAuthUI();
