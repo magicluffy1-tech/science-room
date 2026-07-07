@@ -198,7 +198,7 @@
     manageBtn.classList.toggle('hidden', !teacherAuth.authenticated);
   }
 
-  authBtn.addEventListener('click', () => {
+  authBtn.addEventListener('click', async () => {
     if (teacherAuth.authenticated) {
       teacherLogout();
       updateAuthUI();
@@ -206,11 +206,12 @@
       renderDoor(currentDoorId);
       return;
     }
-    const name = prompt('이름을 입력하세요 (기록에 남습니다):', '');
+    const name = prompt('이름을 입력하세요:', '');
     if (name === null || name.trim() === '') return;
     const pw = prompt('교사 비밀번호를 입력하세요:');
     if (pw === null) return;
-    teacherLogin(pw, name.trim());
+    const ok = await teacherLogin(name.trim(), pw);
+    if (!ok) return; // 이름/비밀번호 불일치 시 인증 상태로 바뀌지 않음
     updateAuthUI();
     renderTabs();
     renderDoor(currentDoorId);
@@ -221,20 +222,18 @@
     if (!name) return;
     const group = prompt('분류(예: 무기산, 유기일반 등 — 생략 가능):', '') || '';
     const special = confirm('극약·특별관리 물질입니까?\n(예: 확인 누르기 / 아니오: 취소 누르기)');
-    const note = prompt('메모(구입일, 구매처 등 — 생략 가능):', '') || '';
-    const result = await addChemical({ name: name.trim(), door, shelf, group, special, note });
+    const result = await addChemical({ name: name.trim(), door, shelf, group, special, note: '' });
     if (result.ok) { renderDoor(currentDoorId); alert(`"${name}" 등록 완료`); }
   }
 
   async function handleRemove(name) {
     if (!confirm(`"${name}"을(를) 재고에서 제거 처리할까요?\n(기록은 삭제되지 않고 이력으로 계속 남습니다)`)) return;
-    const note = prompt('제거 사유(전출/폐기/소진 등 — 생략 가능):', '') || '';
-    const result = await removeChemical(name, note);
+    const result = await removeChemical(name, '');
     if (result.ok) { renderDoor(currentDoorId); alert(`"${name}" 제거 처리 완료`); }
   }
 
   async function handleUse(name) {
-    const note = prompt(`"${name}" 사용 기록을 남깁니다. 용도/수량 등을 적어주세요:`, '') || '';
+    const note = prompt(`"${name}" 사용 기록 메모(선택, 없으면 빈칸으로 확인):`, '') || '';
     const result = await useChemical(name, note);
     if (result.ok) alert('사용 기록이 저장되었습니다.');
   }
@@ -308,6 +307,8 @@
         <label class="flex items-center gap-1 text-xs mt-2">
           <input type="checkbox" id="specialCheck" ${guess.special ? 'checked' : ''}/> 극약·특별관리 물질 (이중 잠금 필요)
         </label>
+        <label class="block text-xs text-on-surface-variant mt-3">MSDS PDF 파일 (선택 — 지금 같이 올리면 자동으로 msds/${name}.pdf 로 저장됩니다)</label>
+        <input type="file" id="msdsFileInput" accept="application/pdf" class="w-full text-xs mt-1 mb-2" />
         <button id="btnConfirmAdd" class="w-full mt-2 py-2 rounded-lg bg-tertiary text-white font-medium hover:opacity-90 transition">이 위치로 등록</button>
         <button id="btnBack1b" class="w-full text-sm text-on-surface-variant hover:underline">뒤로</button>
       </div>
@@ -317,13 +318,22 @@
       const door = Number(document.getElementById('doorSelect').value);
       const shelf = document.getElementById('shelfSelect').value;
       const special = document.getElementById('specialCheck').checked;
-      const note = prompt('메모(구입일 등, 생략 가능):', '') || '';
-      const result = await addChemical({ name, door, shelf, group: guess.group, special, note });
+      const file = document.getElementById('msdsFileInput').files[0];
+      const btn = document.getElementById('btnConfirmAdd');
+      btn.disabled = true; btn.textContent = '등록 중...';
+      const result = await addChemical({ name, door, shelf, group: guess.group, special, note: '' });
+      if (result.ok && file) {
+        btn.textContent = 'MSDS 파일 업로드 중...';
+        const uploadResult = await uploadMsdsFile(name, file);
+        if (!uploadResult.ok) alert('시약은 등록됐지만 MSDS 파일 업로드에는 실패했습니다. msds 폴더에 직접 올려주세요.');
+      }
       if (result.ok) {
         closeModal();
         renderTabs();
         renderDoor(door);
         alert(`"${name}" 등록 완료 (${REAGENT_DOORS.find(d => d.id === door).label})`);
+      } else {
+        btn.disabled = false; btn.textContent = '이 위치로 등록';
       }
     };
   }
@@ -348,8 +358,7 @@
       const name = document.getElementById('removeSelect').value;
       if (!name) return;
       if (!confirm(`"${name}"을(를) 제거할까요?\n(기록은 삭제되지 않고 이력으로 남습니다)`)) return;
-      const note = prompt('제거 사유(전출/폐기/소진 등 — 생략 가능):', '') || '';
-      const result = await removeChemical(name, note);
+      const result = await removeChemical(name, '');
       if (result.ok) {
         closeModal();
         renderTabs();
