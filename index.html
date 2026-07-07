@@ -53,153 +53,165 @@
   .nav-link.active { background: #dee8ff; color: #2563eb; font-weight: 600; }
 </style>
 </head>
-<body class="bg-background text-on-surface font-body-md text-body-md h-screen w-full flex overflow-hidden">
+<body class="bg-background text-on-surface font-body-md text-body-md h-screen w-full flex flex-col overflow-hidden">
 
-<!-- 좌측 네비게이션 -->
-<nav class="hidden md:flex flex-col h-screen w-64 bg-surface-container-low border-r border-outline-variant py-base px-stack-md shrink-0">
-  <div class="flex items-center gap-2 px-2 py-stack-md mb-stack-md">
-    <span class="material-symbols-outlined text-primary-container text-[28px]">science</span>
-    <span class="font-bold text-on-surface leading-tight">서산명지중<br/>과학실 안전</span>
-  </div>
-  <div class="flex flex-col gap-1 flex-1">
-    <a href="index.html" class="nav-link active flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
-      <span class="material-symbols-outlined">dashboard</span> Dashboard
-    </a>
-    <a href="cabinet.html" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
-      <span class="material-symbols-outlined">folder_managed</span> MSDS Library
-    </a>
-    <a href="#safety-training" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
-      <span class="material-symbols-outlined">school</span> Safety Training
-    </a>
-    <a href="#inspections" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
-      <span class="material-symbols-outlined">verified_user</span> Inspections
-    </a>
-    <a href="#emergency" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
-      <span class="material-symbols-outlined">emergency_home</span> Emergency
-    </a>
-  </div>
-</nav>
+<!-- 최상단 타이틀 바 (전체 폭, 그라데이션) -->
+<header class="w-full px-container-padding py-stack-lg shrink-0 text-white"
+        style="background: linear-gradient(120deg, #1e3a8a 0%, #2563eb 45%, #006329 100%);">
+  <h1 class="text-headline-lg font-headline-lg font-extrabold flex items-center gap-2">
+    <span class="material-symbols-outlined text-[28px]">science</span>
+    서산명지중 과학실 안전 대시보드
+  </h1>
+  <p class="text-white/80 mt-1 text-sm">Real-time monitoring and safety protocols for science laboratory environments.</p>
+  <span class="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-sm font-medium border border-white/25">
+    <span class="material-symbols-outlined text-[16px] text-tertiary-fixed-dim">verified</span> System Online &amp; Monitoring
+  </span>
+</header>
 
-<main class="flex-1 overflow-y-auto p-container-padding">
-<div class="max-w-6xl mx-auto space-y-stack-lg">
+<div class="flex flex-1 overflow-hidden">
 
-  <!-- Hero -->
-  <header class="bg-surface rounded-xl border border-outline-variant shadow-sm p-container-padding">
-    <h1 class="text-headline-lg font-headline-lg font-extrabold text-on-surface">서산명지중 과학실 안전 대시보드</h1>
-    <p class="text-on-surface-variant mt-2">Real-time monitoring and safety protocols for science laboratory environments.</p>
-    <span class="inline-flex items-center gap-1 mt-3 px-3 py-1 rounded-full bg-tertiary-fixed-dim/20 text-tertiary text-sm font-medium">
-      <span class="material-symbols-outlined text-[16px]">verified</span> System Online &amp; Monitoring
-    </span>
-  </header>
-
-  <!-- 과학실 안전 점검 -->
-  <section id="inspections" class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-    <div class="p-stack-md border-b border-outline-variant bg-surface-bright flex items-center gap-2">
-      <span class="material-symbols-outlined text-primary-container">verified</span>
-      <h2 class="text-headline-md font-headline-md font-bold text-on-surface">과학실 안전 점검</h2>
-    </div>
-    <div class="p-container-padding space-y-stack-md">
-      <p class="text-on-surface-variant">Latest environmental and equipment safety audit.</p>
-      <div class="flex flex-col md:flex-row gap-stack-md">
-        <a href="https://docs.google.com/spreadsheets/d/1cAvFz8OwmGLJ4J6XHo5OH6sblh8lL8z91BtWbXoF-GM/edit?gid=0#gid=0"
-           target="_blank" rel="noopener"
-           class="flex-1 flex items-center gap-2 p-stack-md rounded-lg border border-outline-variant hover:border-primary-container transition">
-          <span class="material-symbols-outlined text-primary-container">assignment</span> 안전관리 점검표
-        </a>
-        <a href="https://script.google.com/macros/s/AKfycbx7gb8gQUiBRN7taEgV5r1YvSvsiszc2DH8rcu8E_3XxwRSRw5Ti2UfstKB5VCHzSSRng/exec"
-           target="_blank" rel="noopener"
-           class="flex-1 flex items-center gap-2 p-stack-md rounded-lg border border-outline-variant hover:border-primary-container transition">
-          <span class="material-symbols-outlined text-primary-container">task_alt</span> 안전점검 시스템
-        </a>
-      </div>
-      <div class="flex items-center justify-between pt-stack-sm border-t border-outline-variant">
-        <div>
-          <p class="text-xs text-on-surface-variant">Inspector Signature</p>
-          <p class="font-bold">조한울</p>
-        </div>
-        <a href="https://docs.google.com/spreadsheets/d/1cAvFz8OwmGLJ4J6XHo5OH6sblh8lL8z91BtWbXoF-GM/edit?gid=0#gid=0"
-           target="_blank" rel="noopener"
-           class="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-primary-container text-on-primary font-medium hover:opacity-90 transition">
-          View Report <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- 5분 안전교육 -->
-  <section id="safety-training" class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-    <div class="p-stack-md border-b border-outline-variant bg-surface-bright">
-      <h2 class="text-headline-md font-headline-md font-bold text-on-surface">📺 실험 전 5분 안전교육</h2>
-      <p class="text-sm text-on-surface-variant">ScienceAll / KOFAC</p>
-    </div>
-    <div class="p-container-padding grid grid-cols-1 md:grid-cols-2 gap-gutter" id="videoGrid"></div>
-  </section>
-
-  <!-- MSDS 요약 + 시약장 바로가기 -->
-  <section class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-    <div class="p-stack-md border-b border-outline-variant bg-surface-bright flex items-center gap-2">
-      <span class="material-symbols-outlined text-primary-container">folder_open</span>
-      <h2 class="text-headline-md font-headline-md font-bold text-on-surface">🚨 물질안전보건자료 (MSDS) 및 관리 요령</h2>
-    </div>
-    <div class="p-container-padding space-y-stack-md">
-      <a href="cabinet.html"
-         class="flex items-center gap-stack-md p-stack-md rounded-lg border border-outline-variant
-                bg-surface-container-low hover:border-primary-container transition">
-        <img src="reagent-cabinet.png" alt="밀폐시약장"
-             class="w-20 h-20 object-cover rounded-lg border border-outline-variant" />
-        <div>
-          <h3 class="font-bold text-on-surface flex items-center gap-1">
-            <span class="material-symbols-outlined text-primary-container text-[20px]">inventory_2</span>
-            밀폐시약장 칸별 보관 현황 보기
-          </h3>
-          <p class="text-sm text-on-surface-variant">문 4개 · 8칸 배치와 물질별 MSDS 바로가기 (총 55종)</p>
-        </div>
-        <span class="material-symbols-outlined ml-auto text-on-surface-variant">arrow_forward</span>
+  <!-- 좌측 네비게이션 -->
+  <nav class="hidden md:flex flex-col h-full w-64 bg-surface-container-low border-r border-outline-variant py-stack-md px-stack-md shrink-0">
+    <div class="flex flex-col gap-1 flex-1">
+      <a href="index.html" class="nav-link active flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
+        <span class="material-symbols-outlined">dashboard</span> Dashboard
       </a>
-      <div id="msdsSummary" class="grid grid-cols-1 md:grid-cols-2 gap-gutter"></div>
+      <a href="cabinet.html" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
+        <span class="material-symbols-outlined">folder_managed</span> MSDS Library
+      </a>
+      <a href="#safety-training" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
+        <span class="material-symbols-outlined">school</span> Safety Training
+      </a>
+      <a href="#inspections" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
+        <span class="material-symbols-outlined">verified_user</span> Inspections
+      </a>
+      <a href="#emergency" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-container-high transition">
+        <span class="material-symbols-outlined">emergency_home</span> Emergency
+      </a>
     </div>
-  </section>
+  </nav>
 
-  <!-- 비상 탈출 경로 및 비상 연락망 -->
-  <section id="emergency" class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-    <div class="p-stack-md border-b border-outline-variant bg-surface-bright flex items-center gap-2">
-      <span class="material-symbols-outlined text-error">emergency_home</span>
-      <h2 class="text-headline-md font-headline-md font-bold text-on-surface">🏃 비상 탈출 경로 및 비상 연락망</h2>
+  <main class="flex-1 overflow-y-auto p-container-padding">
+  <div class="max-w-6xl mx-auto space-y-stack-lg">
+
+    <!-- 과학실 안전 점검 + 5분 안전교육 (2열) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-stack-lg items-start">
+
+      <!-- 과학실 안전 점검 -->
+      <section id="inspections" class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden border-l-4 border-l-primary-container">
+        <div class="p-stack-md border-b border-outline-variant bg-surface-bright flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary-container">verified</span>
+          <h2 class="text-headline-md font-headline-md font-bold text-on-surface">과학실 안전 점검</h2>
+        </div>
+        <div class="p-container-padding space-y-stack-md">
+          <p class="text-on-surface-variant">Latest environmental and equipment safety audit.</p>
+          <div class="flex flex-col gap-stack-md">
+            <a href="https://docs.google.com/spreadsheets/d/1cAvFz8OwmGLJ4J6XHo5OH6sblh8lL8z91BtWbXoF-GM/edit?gid=0#gid=0"
+               target="_blank" rel="noopener"
+               class="flex-1 flex items-center gap-2 p-stack-md rounded-lg border border-outline-variant hover:border-primary-container transition">
+              <span class="material-symbols-outlined text-primary-container">assignment</span> 안전관리 점검표
+            </a>
+            <a href="https://script.google.com/macros/s/AKfycbx7gb8gQUiBRN7taEgV5r1YvSvsiszc2DH8rcu8E_3XxwRSRw5Ti2UfstKB5VCHzSSRng/exec"
+               target="_blank" rel="noopener"
+               class="flex-1 flex items-center gap-2 p-stack-md rounded-lg border border-outline-variant hover:border-primary-container transition">
+              <span class="material-symbols-outlined text-primary-container">task_alt</span> 안전점검 시스템
+            </a>
+          </div>
+          <div class="flex items-center justify-between pt-stack-sm border-t border-outline-variant">
+            <div>
+              <p class="text-xs text-on-surface-variant">Inspector Signature</p>
+              <p class="font-bold">조한울</p>
+            </div>
+            <a href="https://docs.google.com/spreadsheets/d/1cAvFz8OwmGLJ4J6XHo5OH6sblh8lL8z91BtWbXoF-GM/edit?gid=0#gid=0"
+               target="_blank" rel="noopener"
+               class="inline-flex items-center gap-1 px-4 py-2 rounded-lg bg-primary-container text-on-primary font-medium hover:opacity-90 transition">
+              View Report <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5분 안전교육 -->
+      <section id="safety-training" class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden border-l-4 border-l-tertiary">
+        <div class="p-stack-md border-b border-outline-variant bg-surface-bright">
+          <h2 class="text-headline-md font-headline-md font-bold text-on-surface">📺 실험 전 5분 안전교육</h2>
+          <p class="text-sm text-on-surface-variant">ScienceAll / KOFAC</p>
+        </div>
+        <div class="p-container-padding grid grid-cols-1 gap-gutter" id="videoGrid"></div>
+      </section>
+
     </div>
-    <div class="p-container-padding grid grid-cols-1 md:grid-cols-2 gap-gutter">
-      <div class="p-stack-md rounded-lg border border-outline-variant bg-surface-container-low">
-        <h3 class="font-bold flex items-center gap-1 mb-2"><span class="material-symbols-outlined text-[18px]">map</span> Lab Floor Plan &amp; Evacuation Routes</h3>
-        <p class="text-sm text-on-surface-variant">Primary Route / Secondary Route — 과학실 평면도 이미지를 이 자리에 추가하세요.</p>
+
+    <!-- MSDS 요약 + 시약장 바로가기 -->
+    <section class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden border-l-4 border-l-[#f59e0b]">
+      <div class="p-stack-md border-b border-outline-variant bg-surface-bright flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary-container">folder_open</span>
+        <h2 class="text-headline-md font-headline-md font-bold text-on-surface">🚨 물질안전보건자료 (MSDS) 및 관리 요령</h2>
       </div>
-      <div class="p-stack-md rounded-lg border border-outline-variant bg-surface-container-low space-y-3">
-        <h3 class="font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">contact_phone</span> Emergency Directory</h3>
+      <div class="p-container-padding space-y-stack-md">
+        <a href="cabinet.html"
+           class="flex items-center gap-stack-md p-stack-md rounded-lg border border-outline-variant
+                  bg-surface-container-low hover:border-primary-container transition">
+          <img src="reagent-cabinet.png" alt="밀폐시약장"
+               class="w-20 h-20 object-cover rounded-lg border border-outline-variant" />
+          <div>
+            <h3 class="font-bold text-on-surface flex items-center gap-1">
+              <span class="material-symbols-outlined text-primary-container text-[20px]">inventory_2</span>
+              밀폐시약장 칸별 보관 현황 보기
+            </h3>
+            <p class="text-sm text-on-surface-variant">문 4개 · 8칸 배치와 물질별 MSDS 바로가기 (총 55종)</p>
+          </div>
+          <span class="material-symbols-outlined ml-auto text-on-surface-variant">arrow_forward</span>
+        </a>
+        <div id="msdsSummary" class="grid grid-cols-1 md:grid-cols-2 gap-gutter"></div>
+      </div>
+    </section>
 
-        <div class="flex items-center justify-between">
-          <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">local_hospital</span> NEARBY HOSPITAL · 서산의료원</span>
-          <a href="tel:0416897000" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 689-7000</a>
+    <!-- 비상 탈출 경로 및 비상 연락망 -->
+    <section id="emergency" class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden border-l-4 border-l-error">
+      <div class="p-stack-md border-b border-outline-variant bg-surface-bright flex items-center gap-2">
+        <span class="material-symbols-outlined text-error">emergency_home</span>
+        <h2 class="text-headline-md font-headline-md font-bold text-on-surface">🏃 비상 탈출 경로 및 비상 연락망</h2>
+      </div>
+      <div class="p-container-padding grid grid-cols-1 md:grid-cols-2 gap-gutter">
+        <div class="p-stack-md rounded-lg border border-outline-variant bg-surface-container-low">
+          <h3 class="font-bold flex items-center gap-1 mb-2"><span class="material-symbols-outlined text-[18px]">map</span> Lab Floor Plan &amp; Evacuation Routes</h3>
+          <p class="text-sm text-on-surface-variant">Primary Route / Secondary Route — 과학실 평면도 이미지를 이 자리에 추가하세요.</p>
         </div>
-        <div class="flex items-center justify-between">
-          <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">support_agent</span> 안전관리책임자</span>
-          <a href="tel:07048014219" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 070-4801-4219</a>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">local_fire_department</span> 대산읍 119 안전센터</span>
-          <a href="tel:0416615800" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 661-5800</a>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">local_police</span> 서산경찰서 대산지구대</span>
-          <a href="tel:0416899715" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 689-9715</a>
+        <div class="p-stack-md rounded-lg border border-outline-variant bg-surface-container-low space-y-3">
+          <h3 class="font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">contact_phone</span> Emergency Directory</h3>
+
+          <div class="flex items-center justify-between">
+            <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">local_hospital</span> NEARBY HOSPITAL · 서산의료원</span>
+            <a href="tel:0416897000" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 689-7000</a>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">person_alert</span> 과학교사 · 조한울</span>
+            <a href="tel:01037849517" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 010-3784-9517</a>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">support_agent</span> 안전관리책임자 · 조한울</span>
+            <a href="tel:07048014219" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 070-4801-4219</a>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">local_fire_department</span> 대산읍 119 안전센터</span>
+            <a href="tel:0416615800" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 661-5800</a>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="flex items-center gap-1 text-sm"><span class="material-symbols-outlined text-[16px] text-error">local_police</span> 서산경찰서 대산지구대</span>
+            <a href="tel:0416899715" class="font-bold text-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">call</span> 689-9715</a>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <footer class="text-center text-sm text-on-surface-variant py-stack-lg">
-    © 2026 서산명지중학교 과학실. 모든 안전수칙을 철저히 준수합니다.
-  </footer>
+    <footer class="text-center text-sm text-on-surface-variant py-stack-lg">
+      © 2026 서산명지중학교 과학실. 모든 안전수칙을 철저히 준수합니다.
+    </footer>
 
+  </div>
+  </main>
 </div>
-</main>
 
 <script src="reagent-data.js"></script>
 <script>
