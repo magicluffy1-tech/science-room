@@ -5,7 +5,16 @@
  *
  * special: 운영계획서 참고7 "극약" 목록에 실제 포함되어 별도 시건장치(이중잠금)가
  *          필요한 물질에 true 표시. (임의 판단이 아니라 학교 자체 문서 기준입니다)
+ *
+ * CONFIG.APPS_SCRIPT_URL: 구글 시트를 재고 DB로 쓰는 Apps Script 웹앱 주소.
+ *  - 비워두면(빈 문자열) 아래 CHEMICALS 배열(고정 데이터)만 사용합니다.
+ *  - 값을 채우면 페이지가 열릴 때 이 주소에서 최신 재고를 불러와 CHEMICALS를 대체합니다.
+ *  - 학교를 옮기면 이 줄 하나만 새 학교의 웹앱 주소로 바꾸면 됩니다.
+ *    (설정 방법: apps-script/README.md 참고)
  */
+const CONFIG = {
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxprdCQQbhvFgz77ygnujpv5_ayOdDzGXhKNNaqiV26WjeJQLrQ5yAUrf2s4ampJMeT/exec" // 예: "https://script.google.com/macros/s/AKfycb.../exec"
+};
 
 const REAGENT_DOORS = [
   {
@@ -107,11 +116,103 @@ const CHEMICALS = [
   { name: "한천분말", door: 4, shelf: "bottom", group: "탄수화물", special: false }
 ];
 
-// KOSHA MSDS 검색 페이지: 검색폼이 JS 기반이라 이름으로 결과에 바로 딥링크할 수 없음.
-// → 이름을 클립보드에 복사한 뒤 검색 페이지를 새 탭으로 열어, 붙여넣기(Ctrl+V)만 하면 되도록 처리.
+// 1순위: 저장소 안의 msds/ 폴더에 "<시약명>.pdf" 로 저장된 실제 MSDS 원문을 직접 연다.
+//        (예: msds/염산.pdf, msds/티오황산나트륨 5수화물.pdf)
+// 2순위: 해당 파일이 없으면(파일명 불일치 등) 기존 방식대로 이름을 클립보드에 복사하고
+//        KOSHA MSDS 검색 페이지를 새 탭으로 열어 붙여넣기(Ctrl+V)만 하면 되도록 자동 대체.
+const MSDS_LOCAL_DIR = "msds/";
 const MSDS_SEARCH_URL = "https://msds.kosha.or.kr/MSDSInfo/kcic/msdssearchMsds.do";
 
-function openMsds(name) {
+async function openMsds(name) {
+  const localPath = MSDS_LOCAL_DIR + encodeURIComponent(name) + ".pdf";
+  try {
+    const res = await fetch(localPath, { method: "HEAD", cache: "no-store" });
+    if (res.ok) {
+      window.open(localPath, "_blank", "noopener");
+      return;
+    }
+  } catch (e) {
+    // 네트워크 오류 등 → 아래 폴백으로 진행
+  }
   navigator.clipboard?.writeText(name).catch(() => {});
   window.open(MSDS_SEARCH_URL, "_blank", "noopener");
+}
+
+/* ============================================================
+ * 재고 관리 (구글 시트 연동, CONFIG.APPS_SCRIPT_URL 설정 시에만 동작)
+ * ============================================================ */
+
+// 현재 화면에서 쓰는 실제 목록. 처음엔 고정 데이터로 시작하고,
+// Apps Script 연결이 되어 있으면 최신 재고로 교체됨.
+let INVENTORY = CHEMICALS.slice();
+
+// 세션 동안만 유지되는 교사 인증 상태 (새로고침하면 다시 인증 필요 — 보안을 위해 일부러 이렇게 둠)
+let teacherAuth = { authenticated: false, password: null, teacher: null };
+
+function isBackendConfigured() {
+  return !!CONFIG.APPS_SCRIPT_URL;
+}
+
+async function loadInventory() {
+  if (!isBackendConfigured()) return INVENTORY; // 백엔드 미설정 시 고정 데이터 그대로 사용
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL, { cache: "no-store" });
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.items) && data.items.length) {
+      INVENTORY = data.items;
+    }
+  } catch (e) {
+    console.warn("재고 서버 연결 실패, 고정 데이터로 표시합니다.", e);
+  }
+  return INVENTORY;
+}
+
+function teacherLogin(password, teacherName) {
+  teacherAuth = { authenticated: true, password, teacher: teacherName || "미상" };
+}
+
+function teacherLogout() {
+  teacherAuth = { authenticated: false, password: null, teacher: null };
+}
+
+async function sendInventoryAction(payload) {
+  if (!isBackendConfigured()) {
+    alert("아직 재고 관리 서버(Apps Script)가 연결되어 있지 않습니다.\napps-script/README.md 설정을 먼저 완료해주세요.");
+    return { ok: false };
+  }
+  if (!teacherAuth.authenticated) {
+    alert("먼저 교사 인증을 해주세요.");
+    return { ok: false };
+  }
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ ...payload, password: teacherAuth.password, teacher: teacherAuth.teacher })
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      alert("실패: " + (data.error || "알 수 없는 오류"));
+      if ((data.error || "").includes("비밀번호")) teacherLogout();
+    }
+    return data;
+  } catch (e) {
+    alert("서버 연결에 실패했습니다: " + e.message);
+    return { ok: false };
+  }
+}
+
+async function addChemical({ name, door, shelf, group, special, note }) {
+  const result = await sendInventoryAction({ action: "add", name, door, shelf, group, special, note });
+  if (result.ok) await loadInventory();
+  return result;
+}
+
+async function removeChemical(name, note) {
+  const result = await sendInventoryAction({ action: "remove", name, note });
+  if (result.ok) await loadInventory();
+  return result;
+}
+
+async function useChemical(name, note) {
+  return sendInventoryAction({ action: "use", name, note });
 }
