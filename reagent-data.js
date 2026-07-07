@@ -13,7 +13,7 @@
  *    (설정 방법: apps-script/README.md 참고)
  */
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxprdCQQbhvFgz77ygnujpv5_ayOdDzGXhKNNaqiV26WjeJQLrQ5yAUrf2s4ampJMeT/exec" // 예: "https://script.google.com/macros/s/AKfycb.../exec"
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyX88EvG7PRl19JkYYpw7Z1-Kg5LRC1FOQJXqmwZRjn0Dr_LHbOiOp91DN09IiB5Nbc/exec" // 예: "https://script.google.com/macros/s/AKfycb.../exec"
 };
 
 const REAGENT_DOORS = [
@@ -196,8 +196,27 @@ async function loadInventory() {
   return INVENTORY;
 }
 
-function teacherLogin(password, teacherName) {
-  teacherAuth = { authenticated: true, password, teacher: teacherName || "미상" };
+async function teacherLogin(teacherName, password) {
+  if (!isBackendConfigured()) {
+    alert("재고 관리 서버(Apps Script)가 아직 연결되어 있지 않습니다.\napps-script/README.md 설정을 먼저 완료해주세요.");
+    return false;
+  }
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "login", teacher: teacherName, password })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      teacherAuth = { authenticated: true, password, teacher: teacherName };
+      return true;
+    }
+    alert(data.error || "이름 또는 비밀번호가 올바르지 않습니다.");
+    return false;
+  } catch (e) {
+    alert("서버 연결에 실패했습니다: " + e.message);
+    return false;
+  }
 }
 
 function teacherLogout() {
@@ -221,7 +240,7 @@ async function sendInventoryAction(payload) {
     const data = await res.json();
     if (!data.ok) {
       alert("실패: " + (data.error || "알 수 없는 오류"));
-      if ((data.error || "").includes("비밀번호")) teacherLogout();
+      if ((data.error || "").includes("이름 또는 비밀번호")) teacherLogout();
     }
     return data;
   } catch (e) {
@@ -244,4 +263,24 @@ async function removeChemical(name, note) {
 
 async function useChemical(name, note) {
   return sendInventoryAction({ action: "use", name, note });
+}
+
+/**
+ * MSDS PDF 파일(File 객체)을 base64로 읽어서 GitHub의 msds/<name>.pdf 로 바로 업로드한다.
+ * 서버(Apps Script)가 GitHub 토큰을 갖고 실제 업로드를 대신 처리하므로, 브라우저에는
+ * GitHub 접근 권한이 전혀 노출되지 않는다.
+ */
+async function uploadMsdsFile(name, file) {
+  if (!file) return { ok: true }; // 파일을 안 골랐으면 그냥 넘어감 (선택사항)
+  if (file.size > 15 * 1024 * 1024) {
+    alert("파일이 너무 큽니다 (15MB 이하로 올려주세요).");
+    return { ok: false };
+  }
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]); // "data:...;base64,XXXX" 에서 XXXX만
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  return sendInventoryAction({ action: "uploadMsds", name, fileBase64: base64 });
 }
