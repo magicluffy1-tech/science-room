@@ -129,22 +129,39 @@ const MSDS_SEARCH_URL = "https://msds.kosha.or.kr/MSDSInfo/kcic/msdssearchMsds.d
  * 2) 처음 보는 이름이면 이름에 포함된 패턴(질산~, 염화~, ~가루, ~용액 등)으로 추정
  * 3) 그래도 모르면 "미분류"로 반환 — 화면에서 반드시 교사가 최종 확인/수정하도록 함
  *    (자동판단은 어디까지나 "제안"이고, 위험물 배치를 기계가 확정짓지 않게 하기 위함)
+ *
+ * [수정 내역]
+ * - "이미 등록된 적 있는 이름" 판별을 고정 데이터(CHEMICALS)가 아니라 실제 최신 재고(INVENTORY)에서
+ *   하도록 변경. 화면에서 새로 추가한 시약은 CHEMICALS에는 반영되지 않고 INVENTORY(구글시트)에만
+ *   반영되므로, 예전 코드에서는 "예전에 등록한 시약"을 다시 등록하려 해도 exact 매칭이 되지 않았음.
+ * - 규칙 순서를 "가장 위험한 것 우선"으로 재정렬. 기존 코드는 배열 앞쪽 규칙에 먼저 걸리면 뒤쪽의
+ *   독극물 판별 규칙까지 도달하지 못해, 예를 들어 "염화수은" 같은 이름이 독극물이 아니라
+ *   일반 염화물(3번 문 하단, special:false)로 잘못 제안되는 문제가 있었음.
+ * - 무기산(염산/황산/붕산) 판별 정규식을 완전일치(^...$)에서 "묽은/진한 접두사, 농도 표기(%),
+ *   공백"까지 허용하도록 완화. 단, "황산구리"처럼 뒤에 다른 원소명이 바로 붙는 염류(salt)는
+ *   산이 아니므로 여전히 매칭되지 않도록, 산 이름 뒤에 다른 한글이 바로 이어지는 경우는 제외했음.
  */
 function classifyChemical(name) {
-  const known = CHEMICALS.find(c => c.name === name);
+  const known = INVENTORY.find(c => c.name === name);
   if (known) {
     return { door: known.door, shelf: known.shelf, group: known.group, special: known.special, confidence: "exact" };
   }
 
   const rules = [
+    // 위험도가 가장 높은 독극물 키워드는 항상 최우선으로 검사한다.
+    // (아래쪽에 두면 위쪽 규칙에 먼저 걸려서 위험 표시가 누락될 수 있음)
+    { test: n => /(요오드|아이오딘|청산|시안|비소|수은)/.test(n), door: 2, shelf: "bottom", group: "독극물", special: true },
+
+    // 대표 무기산: "묽은/진한" 접두사나 "(35%)" 같은 농도 표기가 붙어도 인식한다.
+    // 단, "황산구리"처럼 산 이름 뒤에 다른 한글이 바로 붙는 염류(salt) 이름은 산이 아니므로 제외.
+    { test: n => /^(묽은\s*|진한\s*)?(염산|황산|붕산)(\s|[0-9(%]|$)/.test(n), door: 2, shelf: "top", group: "무기산", special: true },
+
     { test: n => /^질산/.test(n), door: 3, shelf: "top", group: "질산염", special: false },
     { test: n => /^염화/.test(n), door: 3, shelf: "bottom", group: "염화물", special: false },
     { test: n => /탄산/.test(n), door: 4, shelf: "top", group: "산화물/탄산염", special: false },
     { test: n => /(가루|분말|리본|금속판|구리판)/.test(n), door: 4, shelf: "bottom", group: "금속·생물시료", special: false },
     { test: n => /(용액|카민|블루|오렌지|프탈레인|인디고|BTB)/i.test(n), door: 1, shelf: "bottom", group: "지시약·유기시약", special: false },
-    { test: n => /(알코올|에탄올|아세톤|벤젠|나프탈렌)/.test(n), door: 1, shelf: "top", group: "인화성·휘발성", special: false },
-    { test: n => /(요오드|아이오딘|청산|시안|비소|수은)/.test(n), door: 2, shelf: "bottom", group: "독극물", special: true },
-    { test: n => /^(염산|황산|붕산)$/.test(n), door: 2, shelf: "top", group: "무기산", special: true }
+    { test: n => /(알코올|에탄올|아세톤|벤젠|나프탈렌)/.test(n), door: 1, shelf: "top", group: "인화성·휘발성", special: false }
   ];
   for (const r of rules) {
     if (r.test(name)) return { door: r.door, shelf: r.shelf, group: r.group, special: r.special, confidence: "guess" };
@@ -249,8 +266,10 @@ async function sendInventoryAction(payload) {
   }
 }
 
-async function addChemical({ name, door, shelf, group, special, note }) {
-  const result = await sendInventoryAction({ action: "add", name, door, shelf, group, special, note });
+// msdsStatus: "등록" | "미등록" — 등록 시점에 MSDS PDF를 같이 못 올리면 "미등록"으로 저장해서
+// 화면에 뱃지로 표시되게 하고, 나중에 시간 날 때 목록에서 바로 업로드해 "등록"으로 바꿀 수 있게 한다.
+async function addChemical({ name, door, shelf, group, special, note, msdsStatus }) {
+  const result = await sendInventoryAction({ action: "add", name, door, shelf, group, special, note, msdsStatus });
   if (result.ok) await loadInventory();
   return result;
 }
@@ -263,6 +282,14 @@ async function removeChemical(name, note) {
 
 async function useChemical(name, note) {
   return sendInventoryAction({ action: "use", name, note });
+}
+
+// MSDS 등록 상태만 나중에 따로 바꿀 때 사용 (예: 처음엔 "미등록"으로 남겨뒀다가
+// 파일을 나중에 준비해서 업로드에 성공하면 "등록"으로 갱신)
+async function setMsdsStatus(name, status) {
+  const result = await sendInventoryAction({ action: "setMsdsStatus", name, status });
+  if (result.ok) await loadInventory();
+  return result;
 }
 
 /**
