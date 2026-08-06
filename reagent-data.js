@@ -13,7 +13,7 @@
  *    (설정 방법: apps-script/README.md 참고)
  */
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzRvHVa351R1AftXAM3xEuApJuJ7L5oa8M4vfMjKMPff4V_76QBQL3d4hSPN3XzZjO0/exec" // 예: "https://script.google.com/macros/s/AKfycb.../exec"
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxEu2k9N8UwcCjG3ULxMgc98TAUEPy2_OfBzO2Ccji7cWEB3jn729GJz1AtJ8tSHsJB/exec" // 예: "https://script.google.com/macros/s/AKfycb.../exec"
 };
 
 const REAGENT_DOORS = [
