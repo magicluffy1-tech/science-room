@@ -13,7 +13,7 @@
  *    (설정 방법: apps-script/README.md 참고)
  */
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzly8R-aJc_dgM7ypofjI3pINtbV1MFPH5w3a-Wv3DueWSyhIiw2P2kEN2gBfviIb5P/exec" // 예: "https://script.google.com/macros/s/AKfycb.../exec"
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzRvHVa351R1AftXAM3xEuApJuJ7L5oa8M4vfMjKMPff4V_76QBQL3d4hSPN3XzZjO0/exec" // 예: "https://script.google.com/macros/s/AKfycb.../exec"
 };
 
 const REAGENT_DOORS = [
@@ -24,10 +24,11 @@ const REAGENT_DOORS = [
     bottom: { key: "indicator",  title: "🧪 저위험 지시약·유기시약", note: "" }
   },
   {
+    // [위치 변경] 기존 4번 문 내용이 그대로 이동해 옴 (상/하 순서는 유지)
     id: 2,
     label: "2번 문",
-    top:    { key: "acid",       title: "⚗️ 부식성 무기산", note: "내산 트레이 사용" },
-    bottom: { key: "poison",     title: "☠️ 독약·극약 특별관리", note: "이중 잠금 권장" }
+    top:    { key: "carbonate",  title: "🪨 탄산염·붕산염·황산염 등", note: "" },
+    bottom: { key: "metal",     title: "⚙️ 금속분말류 + 생물시료", note: "분말은 밀폐 보관" }
   },
   {
     id: 3,
@@ -36,10 +37,12 @@ const REAGENT_DOORS = [
     bottom: { key: "chloride",  title: "🧂 일반 무기 염화물", note: "" }
   },
   {
+    // [위치 변경] 기존 2번 문 내용이 이동해 오면서 상/하가 서로 바뀜:
+    // 상단 = 독약·극약(구 2번 하단), 하단 = 부식성 무기산(구 2번 상단)
     id: 4,
     label: "4번 문",
-    top:    { key: "carbonate",  title: "🪨 탄산염·붕산염·황산염 등", note: "" },
-    bottom: { key: "metal",     title: "⚙️ 금속분말류 + 생물시료", note: "분말은 밀폐 보관" }
+    top:    { key: "poison",     title: "☠️ 독약·극약 특별관리", note: "이중 잠금 권장" },
+    bottom: { key: "acid",       title: "⚗️ 부식성 무기산", note: "내산 트레이 사용" }
   }
 ];
 
@@ -64,20 +67,25 @@ const CHEMICALS = [
   { name: "글리세린", door: 1, shelf: "bottom", group: "유기일반", special: false },
   { name: "스테아르산", door: 1, shelf: "bottom", group: "유기일반", special: false },
 
-  // ── 2번 문 상단: 부식성 무기산 ──
-  { name: "염산", door: 2, shelf: "top", group: "무기산", special: true },
-  { name: "황산", door: 2, shelf: "top", group: "무기산", special: true },
-  { name: "붕산", door: 2, shelf: "top", group: "무기일반", special: true },
+  // ── 2번 문 상단: 탄산염·붕산염·황산염 등 (구 4번 문 상단이 이동해 옴) ──
+  { name: "이산화망간", door: 2, shelf: "top", group: "산화물/탄산염", special: false },
+  { name: "탄산나트륨", door: 2, shelf: "top", group: "산화물/탄산염", special: false },
+  { name: "탄산수소나트륨", door: 2, shelf: "top", group: "산화물/탄산염", special: false },
+  { name: "붕사", door: 2, shelf: "top", group: "무기일반/황산염", special: false },
+  { name: "황산나트륨", door: 2, shelf: "top", group: "무기일반/황산염", special: false },
 
-  // ── 2번 문 하단: 독약·극약 특별관리 ──
-  { name: "아이오딘", door: 2, shelf: "bottom", group: "독극물", special: true },
-  { name: "아이오딘화칼륨", door: 2, shelf: "bottom", group: "독극물", special: true },
-  { name: "황산구리", door: 2, shelf: "bottom", group: "독극물", special: true },
-  { name: "질산은", door: 2, shelf: "bottom", group: "특수약품", special: true },
-  { name: "크로뮴산칼륨", door: 2, shelf: "bottom", group: "무기산(재분류)", special: true },
-  { name: "과산화수소", door: 2, shelf: "bottom", group: "독극물", special: true },
-  { name: "페놀프탈레인", door: 2, shelf: "bottom", group: "특수약품", special: true },
-  { name: "티오황산나트륨 5수화물", door: 2, shelf: "bottom", group: "독극물", special: false },
+  // ── 2번 문 하단: 금속분말류 + 생물시료 (구 4번 문 하단이 이동해 옴) ──
+  { name: "구리가루", door: 2, shelf: "bottom", group: "금속(powder)", special: false },
+  { name: "구리판", door: 2, shelf: "bottom", group: "금속(powder)", special: false },
+  { name: "마그네슘리본", door: 2, shelf: "bottom", group: "금속(powder)", special: false },
+  { name: "아연가루", door: 2, shelf: "bottom", group: "금속(powder)", special: false },
+  { name: "철가루", door: 2, shelf: "bottom", group: "금속(powder)", special: false },
+  { name: "활성탄소", door: 2, shelf: "bottom", group: "비금속(powder)", special: false },
+  { name: "황가루", door: 2, shelf: "bottom", group: "비금속(powder)", special: false },
+  { name: "감자전분", door: 2, shelf: "bottom", group: "탄수화물", special: false },
+  { name: "녹말", door: 2, shelf: "bottom", group: "탄수화물", special: false },
+  { name: "포도당", door: 2, shelf: "bottom", group: "탄수화물", special: false },
+  { name: "한천분말", door: 2, shelf: "bottom", group: "탄수화물", special: false },
 
   // ── 3번 문 상단: 산화성 염류 ──
   { name: "질산구리", door: 3, shelf: "top", group: "질산염", special: false },
@@ -95,25 +103,20 @@ const CHEMICALS = [
   { name: "염화칼슘", door: 3, shelf: "bottom", group: "염화물", special: false },
   { name: "염화코발트", door: 3, shelf: "bottom", group: "염화물", special: false },
 
-  // ── 4번 문 상단: 탄산염·붕산염·황산염 등 ──
-  { name: "이산화망간", door: 4, shelf: "top", group: "산화물/탄산염", special: false },
-  { name: "탄산나트륨", door: 4, shelf: "top", group: "산화물/탄산염", special: false },
-  { name: "탄산수소나트륨", door: 4, shelf: "top", group: "산화물/탄산염", special: false },
-  { name: "붕사", door: 4, shelf: "top", group: "무기일반/황산염", special: false },
-  { name: "황산나트륨", door: 4, shelf: "top", group: "무기일반/황산염", special: false },
+  // ── 4번 문 상단: 독약·극약 특별관리 (구 2번 문 하단이 이동해 오면서 상단으로 반전) ──
+  { name: "아이오딘", door: 4, shelf: "top", group: "독극물", special: true },
+  { name: "아이오딘화칼륨", door: 4, shelf: "top", group: "독극물", special: true },
+  { name: "황산구리", door: 4, shelf: "top", group: "독극물", special: true },
+  { name: "질산은", door: 4, shelf: "top", group: "특수약품", special: true },
+  { name: "크로뮴산칼륨", door: 4, shelf: "top", group: "무기산(재분류)", special: true },
+  { name: "과산화수소", door: 4, shelf: "top", group: "독극물", special: true },
+  { name: "페놀프탈레인", door: 4, shelf: "top", group: "특수약품", special: true },
+  { name: "티오황산나트륨 5수화물", door: 4, shelf: "top", group: "독극물", special: false },
 
-  // ── 4번 문 하단: 금속분말류 + 생물시료 ──
-  { name: "구리가루", door: 4, shelf: "bottom", group: "금속(powder)", special: false },
-  { name: "구리판", door: 4, shelf: "bottom", group: "금속(powder)", special: false },
-  { name: "마그네슘리본", door: 4, shelf: "bottom", group: "금속(powder)", special: false },
-  { name: "아연가루", door: 4, shelf: "bottom", group: "금속(powder)", special: false },
-  { name: "철가루", door: 4, shelf: "bottom", group: "금속(powder)", special: false },
-  { name: "활성탄소", door: 4, shelf: "bottom", group: "비금속(powder)", special: false },
-  { name: "황가루", door: 4, shelf: "bottom", group: "비금속(powder)", special: false },
-  { name: "감자전분", door: 4, shelf: "bottom", group: "탄수화물", special: false },
-  { name: "녹말", door: 4, shelf: "bottom", group: "탄수화물", special: false },
-  { name: "포도당", door: 4, shelf: "bottom", group: "탄수화물", special: false },
-  { name: "한천분말", door: 4, shelf: "bottom", group: "탄수화물", special: false }
+  // ── 4번 문 하단: 부식성 무기산 (구 2번 문 상단이 이동해 오면서 하단으로 반전) ──
+  { name: "염산", door: 4, shelf: "bottom", group: "무기산", special: true },
+  { name: "황산", door: 4, shelf: "bottom", group: "무기산", special: true },
+  { name: "붕산", door: 4, shelf: "bottom", group: "무기일반", special: true }
 ];
 
 // 1순위: 저장소 안의 msds/ 폴더에 "<시약명>.pdf" 로 저장된 실제 MSDS 원문을 직접 연다.
@@ -150,16 +153,20 @@ function classifyChemical(name) {
   const rules = [
     // 위험도가 가장 높은 독극물 키워드는 항상 최우선으로 검사한다.
     // (아래쪽에 두면 위쪽 규칙에 먼저 걸려서 위험 표시가 누락될 수 있음)
-    { test: n => /(요오드|아이오딘|청산|시안|비소|수은)/.test(n), door: 2, shelf: "bottom", group: "독극물", special: true },
+    // [위치 변경] 독약·극약 칸이 4번 문 "상단"으로 이동함
+    { test: n => /(요오드|아이오딘|청산|시안|비소|수은)/.test(n), door: 4, shelf: "top", group: "독극물", special: true },
 
     // 대표 무기산: "묽은/진한" 접두사나 "(35%)" 같은 농도 표기가 붙어도 인식한다.
     // 단, "황산구리"처럼 산 이름 뒤에 다른 한글이 바로 붙는 염류(salt) 이름은 산이 아니므로 제외.
-    { test: n => /^(묽은\s*|진한\s*)?(염산|황산|붕산)(\s|[0-9(%]|$)/.test(n), door: 2, shelf: "top", group: "무기산", special: true },
+    // [위치 변경] 부식성 무기산 칸이 4번 문 "하단"으로 이동함
+    { test: n => /^(묽은\s*|진한\s*)?(염산|황산|붕산)(\s|[0-9(%]|$)/.test(n), door: 4, shelf: "bottom", group: "무기산", special: true },
 
     { test: n => /^질산/.test(n), door: 3, shelf: "top", group: "질산염", special: false },
     { test: n => /^염화/.test(n), door: 3, shelf: "bottom", group: "염화물", special: false },
-    { test: n => /탄산/.test(n), door: 4, shelf: "top", group: "산화물/탄산염", special: false },
-    { test: n => /(가루|분말|리본|금속판|구리판)/.test(n), door: 4, shelf: "bottom", group: "금속·생물시료", special: false },
+    // [위치 변경] 탄산염 등 칸이 2번 문 "상단"으로 이동함
+    { test: n => /탄산/.test(n), door: 2, shelf: "top", group: "산화물/탄산염", special: false },
+    // [위치 변경] 금속분말류 칸이 2번 문 "하단"으로 이동함
+    { test: n => /(가루|분말|리본|금속판|구리판)/.test(n), door: 2, shelf: "bottom", group: "금속·생물시료", special: false },
     { test: n => /(용액|카민|블루|오렌지|프탈레인|인디고|BTB)/i.test(n), door: 1, shelf: "bottom", group: "지시약·유기시약", special: false },
     { test: n => /(알코올|에탄올|아세톤|벤젠|나프탈렌)/.test(n), door: 1, shelf: "top", group: "인화성·휘발성", special: false }
   ];
