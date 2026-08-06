@@ -52,6 +52,7 @@
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   .chem-chip { display: inline-flex; align-items: center; }
   .chem-chip.special { border-color: #ba1a1a; background: #fff1f0; color: #93000a; }
+  .msds-missing-badge { display: inline-flex; align-items: center; }
   .door-tab.active { background: #2563eb; color: #fff; }
   .shelf-panel.active { display: block; }
   .shelf-panel { display: none; }
@@ -77,6 +78,10 @@
     <p class="mt-3 text-sm inline-flex items-center gap-1 px-3 py-1 rounded-full bg-error/10 text-on-error-container border border-error/30 w-fit">
       <span class="material-symbols-outlined text-[16px]">warning</span>
       붉은 테두리 항목(⚠)은 학교 운영계획서 기준 <b>극약</b> 물질로 이중 잠금 보관이 필요합니다.
+    </p>
+    <p class="mt-2 text-sm inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 w-fit">
+      <span class="material-symbols-outlined text-[16px]">upload_file</span>
+      노란색 "MSDS 미등록" 표시는 등록 시 MSDS 파일을 아직 못 올린 물질입니다. 준비되면 목록에서 바로 업로드할 수 있어요.
     </p>
   </header>
 
@@ -119,6 +124,7 @@
     const specialCls = item.special ? 'special' : '';
     const warn = item.special ? ' ⚠' : '';
     const safeName = item.name.replace(/'/g, "\\'");
+    const msdsMissing = item.msdsStatus === '미등록';
     let manage = '';
     if (teacherAuth.authenticated) {
       manage = `
@@ -129,10 +135,19 @@
         <button title="재고에서 제거" onclick="event.stopPropagation(); handleRemove('${safeName}')"
           class="text-on-surface-variant hover:text-error">
           <span class="material-symbols-outlined text-[15px] align-middle">close</span>
-        </button>`;
+        </button>
+        ${msdsMissing ? `
+        <button title="MSDS 파일 지금 등록하기" onclick="event.stopPropagation(); handleMsdsUpload('${safeName}')"
+          class="text-on-surface-variant hover:text-tertiary">
+          <span class="material-symbols-outlined text-[15px] align-middle">upload_file</span>
+        </button>` : ''}`;
     }
+    const msdsBadge = msdsMissing
+      ? `<span class="msds-missing-badge ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">MSDS 미등록</span>`
+      : '';
     return `<span class="chem-chip ${specialCls} px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-low text-sm">
         <button class="hover:text-primary-container transition" onclick="openMsds('${safeName}')">${item.name}${warn}</button>
+        ${msdsBadge}
         ${manage}
       </span>`;
   }
@@ -221,8 +236,11 @@
     if (!name) return;
     const group = prompt('분류(예: 무기산, 유기일반 등 — 생략 가능):', '') || '';
     const special = confirm('극약·특별관리 물질입니까?\n(예: 확인 누르기 / 아니오: 취소 누르기)');
-    const result = await addChemical({ name: name.trim(), door, shelf, group, special, note: '' });
-    if (result.ok) { renderDoor(currentDoorId); alert(`"${name}" 등록 완료`); }
+    const result = await addChemical({ name: name.trim(), door, shelf, group, special, note: '', msdsStatus: '미등록' });
+    if (result.ok) {
+      renderDoor(currentDoorId);
+      alert(`"${name}" 등록 완료 (MSDS 미등록 상태 — 목록에서 나중에 업로드할 수 있어요)`);
+    }
   }
 
   async function handleRemove(name) {
@@ -235,6 +253,27 @@
     const note = prompt(`"${name}" 사용 기록 메모(선택, 없으면 빈칸으로 확인):`, '') || '';
     const result = await useChemical(name, note);
     if (result.ok) alert('사용 기록이 저장되었습니다.');
+  }
+
+  // 등록 당시엔 MSDS 파일을 못 올렸던("미등록") 시약을, 파일이 준비된 지금 바로 업로드해서
+  // "등록" 상태로 바꾼다. 목록 칩 옆의 업로드 아이콘을 누르면 실행됨.
+  async function handleMsdsUpload(name) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+      const uploadResult = await uploadMsdsFile(name, file);
+      if (uploadResult.ok) {
+        await setMsdsStatus(name, '등록');
+        renderDoor(currentDoorId);
+        alert(`"${name}" MSDS 등록 완료`);
+      } else {
+        alert('MSDS 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
+    };
+    input.click();
   }
 
   /* ── 시약 추가/제거 모달 ── */
@@ -306,7 +345,7 @@
         <label class="flex items-center gap-1 text-xs mt-2">
           <input type="checkbox" id="specialCheck" ${guess.special ? 'checked' : ''}/> 극약·특별관리 물질 (이중 잠금 필요)
         </label>
-        <label class="block text-xs text-on-surface-variant mt-3">MSDS PDF 파일 (선택 — 지금 같이 올리면 자동으로 msds/${name}.pdf 로 저장됩니다)</label>
+        <label class="block text-xs text-on-surface-variant mt-3">MSDS PDF 파일 (선택 — 지금 같이 올리면 자동으로 msds/${name}.pdf 로 저장됩니다. 지금 안 올려도 "MSDS 미등록"으로 표시되어 나중에 목록에서 바로 올릴 수 있어요)</label>
         <input type="file" id="msdsFileInput" accept="application/pdf" class="w-full text-xs mt-1 mb-2" />
         <button id="btnConfirmAdd" class="w-full mt-2 py-2 rounded-lg bg-tertiary text-white font-medium hover:opacity-90 transition">이 위치로 등록</button>
         <button id="btnBack1b" class="w-full text-sm text-on-surface-variant hover:underline">뒤로</button>
@@ -320,17 +359,28 @@
       const file = document.getElementById('msdsFileInput').files[0];
       const btn = document.getElementById('btnConfirmAdd');
       btn.disabled = true; btn.textContent = '등록 중...';
-      const result = await addChemical({ name, door, shelf, group: guess.group, special, note: '' });
+
+      // 파일을 지금 첨부했으면 "등록", 안 했으면 우선 "미등록"으로 저장해서
+      // 목록에 노란 뱃지가 뜨게 하고 나중에 바로 업로드할 수 있게 한다.
+      const msdsStatus = file ? '등록' : '미등록';
+      const result = await addChemical({ name, door, shelf, group: guess.group, special, note: '', msdsStatus });
+
       if (result.ok && file) {
         btn.textContent = 'MSDS 파일 업로드 중...';
         const uploadResult = await uploadMsdsFile(name, file);
-        if (!uploadResult.ok) alert('시약은 등록됐지만 MSDS 파일 업로드에는 실패했습니다. msds 폴더에 직접 올려주세요.');
+        if (!uploadResult.ok) {
+          // 업로드가 실패했으면 상태를 "미등록"으로 되돌려서 뱃지가 정상적으로 뜨게 한다.
+          await setMsdsStatus(name, '미등록');
+          alert('시약은 등록됐지만 MSDS 파일 업로드에는 실패했습니다.\n"MSDS 미등록" 상태로 표시되며, 목록에서 업로드 아이콘으로 다시 시도할 수 있습니다.');
+        }
       }
+
       if (result.ok) {
         closeModal();
         renderTabs();
         renderDoor(door);
-        alert(`"${name}" 등록 완료 (${REAGENT_DOORS.find(d => d.id === door).label})`);
+        const msdsNote = file ? '' : ' — MSDS 파일은 아직 미등록 상태입니다. 준비되면 목록에서 업로드할 수 있어요.';
+        alert(`"${name}" 등록 완료 (${REAGENT_DOORS.find(d => d.id === door).label})${msdsNote}`);
       } else {
         btn.disabled = false; btn.textContent = '이 위치로 등록';
       }
